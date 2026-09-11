@@ -830,11 +830,28 @@ impl Connection {
         Connection::create_vfs(&crate::vfs::std_file::StdVfs::new(), path, 4096)
     }
 
-    /// Create a fresh in-memory database (`:memory:`), always available.
+    /// Create a fresh in-memory database (`:memory:`), always available, with
+    /// the default 4096-byte page size. See
+    /// [`open_memory_with_page_size`](Self::open_memory_with_page_size).
     pub fn open_memory() -> Result<Connection> {
+        Self::open_memory_with_page_size(4096)
+    }
+
+    /// Create a fresh in-memory database (`:memory:`) with an explicit page
+    /// size, always available.
+    ///
+    /// Smaller page sizes trade a little extra b-tree fan-out for lower heap
+    /// pressure on memory-constrained targets: page images, read/write scratch
+    /// buffers and the in-memory file buffer are all page-granular, and a
+    /// 1 KiB page avoids the multi-kilobyte contiguous allocations that can
+    /// fail under heap fragmentation. The page size lives in the database
+    /// header, so serialized images round-trip through
+    /// [`serialize`](Self::serialize)/[`deserialize`](Self::deserialize)
+    /// regardless of the size used to create them.
+    pub fn open_memory_with_page_size(page_size: u32) -> Result<Connection> {
         let vfs = crate::vfs::memory::MemoryVfs::new();
         let main = vfs.open("main", OpenFlags::READ_WRITE_CREATE)?;
-        let mut db = WritePager::create(main, None, 4096)?;
+        let mut db = WritePager::create(main, None, page_size)?;
         db.commit()?;
         Connection::from_pager(db)
     }
