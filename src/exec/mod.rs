@@ -839,15 +839,6 @@ impl Connection {
 
     /// Create a fresh in-memory database (`:memory:`) with an explicit page
     /// size, always available.
-    ///
-    /// Smaller page sizes trade a little extra b-tree fan-out for lower heap
-    /// pressure on memory-constrained targets: page images, read/write scratch
-    /// buffers and the in-memory file buffer are all page-granular, and a
-    /// 1 KiB page avoids the multi-kilobyte contiguous allocations that can
-    /// fail under heap fragmentation. The page size lives in the database
-    /// header, so serialized images round-trip through
-    /// [`serialize`](Self::serialize)/[`deserialize`](Self::deserialize)
-    /// regardless of the size used to create them.
     pub fn open_memory_with_page_size(page_size: u32) -> Result<Connection> {
         let vfs = crate::vfs::memory::MemoryVfs::new();
         let main = vfs.open("main", OpenFlags::READ_WRITE_CREATE)?;
